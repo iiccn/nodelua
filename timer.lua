@@ -8,6 +8,8 @@ function timer:new(o)
   o = o or {}   
   setmetatable(o, self)
   self.__index = self
+  o.m_size = 0
+  o.m_data = {}
   return o
 end
 

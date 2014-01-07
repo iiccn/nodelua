@@ -10,13 +10,13 @@ socket = {
 
 function socket:accept()
 
-    if ~self.csocket then
+    if not self.csocket then
         return nil,"disconnected"
-    elseif self.type == "data"
+    elseif self.type == "data" then
         return nil,"accept error"
     else
         if self.msgque:is_empty() then
-            if ~self.lprocess then
+            if not self.lprocess then
                 self.lprocess = GetCurrentLightProcess()
             end
             --block
@@ -26,6 +26,7 @@ function socket:accept()
         if msg[1] ~= "newconnection" then
                 print("error")
         else
+                print("a new connection")
                 return msg[2]
         end
     end
@@ -33,11 +34,11 @@ end
 
 
 function socket:recv(timeout)
-    if ~self.csocket then
+    if not self.csocket then
         return nil,"disconnected"
     elseif self.type == "data" then
         if self.msgque:is_empty() then
-            if ~self.lprocess then
+            if not self.lprocess then
                 self.lprocess = GetCurrentLightProcess()
             end
             --block
@@ -56,7 +57,7 @@ function socket:recv(timeout)
 end
 
 function socket:send(data)
-    if ~self.csocket then
+    if not self.csocket then
         return nil,"disconnected"
     elseif self.type == "data" then
         SendPacket(self.csocket,data)
@@ -77,7 +78,7 @@ function socket:finalize()
 end
 
 function socket:close()
-    if ~self.csocket then
+    if not self.csocket then
         return "disconnected"
     end
     Close(self.csocket)
@@ -94,8 +95,10 @@ function socket:new()
 end
 
 --for c function to call
-function create_socket(csocket)
+function create_socket(csocket,type)
     local n = socket:new()
+    n.type = type
+    n.lprocess = GetCurrentLightProcess()
     n.csocket = csocket
     return n
 end

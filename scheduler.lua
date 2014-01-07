@@ -1,5 +1,6 @@
 dofile("timer.lua")
-difile("light_process.lua")
+dofile("light_process.lua")
+dofile("socket.lua")
 
 scheduler =
 {
@@ -141,23 +142,27 @@ function node_spwan(ud,mainfun)
 end
 
 function node_process_msg(msg)
-    local recver = msg[0]
-    local type = msg[1]
-    if type == "packet" then
-        recver:pushmsg({"packet",msg[3],nil})
-    elseif type == "newconnection" then
-        recver:pushmsg({"newconnection",msg[3]})
-    elseif type == "disconnected" then
-        recver.csocket = nil
-        recver:pushmsg({"disconnected",nil,msg[3]})
-    elseif type == "connect_failed" then
-        recver:pushmsg({"connect_failed",nil,msg[3]})
+    if msg then
+        local recver = msg[0]
+        local type = msg[1]
+        if type == "packet" then
+            recver:pushmsg({"packet",msg[3],nil})
+        elseif type == "newconnection" then
+            recver:pushmsg({"newconnection",msg[3]})
+        elseif type == "disconnected" then
+            recver.csocket = nil
+            recver:pushmsg({"disconnected",nil,msg[3]})
+        elseif type == "connect_failed" then
+            recver:pushmsg({"connect_failed",nil,msg[3]})
+        end
     end
 end
 
 function node_loop()
-    global_sc:Schedule()
-    node_process_msg(PeekMsg(50))
+    while true do
+        global_sc:Schedule()
+        node_process_msg(PeekMsg(50))
+    end
 end
 
 function tcp_listen(ip,port)
@@ -167,16 +172,16 @@ end
 function tcp_connect(ip,port,timeout)
     local connect_sock = Connect(ip,port,timeout)
     if connect_sock.msgque:is_empty() then
-        if ~connect_sock.lprocess then
+        if not connect_sock.lprocess then
             connect_sock.lprocess = GetCurrentLightProcess()
         end
         --block
         Block()
     end
     local msg = connect_sock.msgque:pop()
-    if msg[1] = "connect_failed" then
+    if msg[1] == "connect_failed" then
            return nil,msg[3]
-    elseif msg[1] = "newconnection" then
+    elseif msg[1] == "newconnection" then
            return msg[1],nil
     else
            return nil,"fatal error"

@@ -15,6 +15,7 @@ function doio(s)
 end
 
 function listen_fun(l)
+    print("listen_fun")
     while true do
         local s,err = l:accept()
         if s then
@@ -26,7 +27,8 @@ function listen_fun(l)
 end
 
 function main()		
-    local l,err = tcp_listen("127.0.0.1",8010)
+    local l,err = tcp_listen("127.0.0.1",8010)--arg[1],arg[2])
+    print("listen ok")
     if l then
         node_spwan(l,listen_fun) --spwan a light process to do accept
     end
