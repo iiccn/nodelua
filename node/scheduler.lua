@@ -1,6 +1,6 @@
-dofile("timer.lua")
-dofile("light_process.lua")
-dofile("socket.lua")
+dofile("node/timer.lua")
+dofile("node/light_process.lua")
+dofile("node/socket.lua")
 
 scheduler =
 {
@@ -90,11 +90,13 @@ function scheduler:Schedule()
     local now_tick = GetSysTick()
     for k,v in pairs(runlist) do
         self.current_lp = v
-        coroutine.resume(v.croutine,v.ud)
+        coroutine.resume(v.croutine,v)
         self.current_lp = nil
         if v.status == "yield" then
             self:Add2Active(v)
-        end
+        elseif v.status == "dead" then
+			print("a light process dead")
+		end
     end
     runlist = {}
     --看看有没有timeout的纤程
@@ -134,34 +136,46 @@ function GetCurrentLightProcess()
     return global_sc.current_lp
 end
 
+function lp_start_fun(lp)
+	global_sc.CoroCount = global_sc.CoroCount + 1
+	lp.start_func(lp.ud)
+	lp.status = "dead"
+	global_sc.CoroCount = global_sc.CoroCount - 1
+end
+
 function node_spwan(ud,mainfun)
     local lprocess = light_process:new()
-    lprocess.croutine = coroutine.create(mainfun)
+    lprocess.croutine = coroutine.create(lp_start_fun)
     lprocess.ud = ud
+	lprocess.start_func = mainfun
     global_sc:Add2Active(lprocess)
 end
 
 function node_process_msg(msg)
-    if msg then
-        local recver = msg[0]
-        local type = msg[1]
-        if type == "packet" then
-            recver:pushmsg({"packet",msg[3],nil})
-        elseif type == "newconnection" then
-            recver:pushmsg({"newconnection",msg[3]})
-        elseif type == "disconnected" then
-            recver.csocket = nil
-            recver:pushmsg({"disconnected",nil,msg[3]})
-        elseif type == "connect_failed" then
-            recver:pushmsg({"connect_failed",nil,msg[3]})
-        end
-    end
+	local recver = msg[1]
+	local type = msg[2]
+	if type == "packet" then
+		recver:pushmsg({"packet",msg[3],nil})
+	elseif type == "newconnection" then
+		recver:pushmsg({"newconnection",msg[3]})
+	elseif type == "disconnected" then
+		recver.csocket = nil
+		recver:pushmsg({"disconnected",nil,msg[3]})
+	elseif type == "connect_failed" then
+		recver:pushmsg({"connect_failed",nil,msg[3]})
+	end
 end
 
 function node_loop()
     while true do
         global_sc:Schedule()
-        node_process_msg(PeekMsg(50))
+        local msg,err = PeekMsg(50)
+		if err and err == "stoped" then
+			return
+		end
+		if msg then
+			node_process_msg(msg)
+		end
     end
 end
 

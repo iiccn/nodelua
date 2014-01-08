@@ -167,6 +167,15 @@ static int luaListen(lua_State *L)
     const char *ip = lua_tostring(L,1);
     uint16_t port = (uint16_t)lua_tonumber(L,2);
     _lsock_t lsock = luasock_new(NULL);
+	if(0 != CALL_LUA_FUNC2(L,"create_socket",1,PUSH_LUSRDATA(L,lsock),
+						   PUSH_STRING(L,"acceptor")
+						   ))
+	{
+		const char * error = lua_tostring(L, -1);
+		lua_pop(L,1);
+		printf("create_socket:%s\n",error);
+		return 0;
+	}	
     lsock->luasocket = create_luaObj(L);
     SOCK s = g_nodelua->netpoller->listen(g_nodelua->netpoller,ip,port,(void*)lsock->luasocket,accpet_callback);
     if(INVALID_SOCK == s)
@@ -177,16 +186,6 @@ static int luaListen(lua_State *L)
     }else
     {
         lsock->s = s;
-        if(0 != CALL_LUA_FUNC2(L,"create_socket",1,PUSH_LUSRDATA(L,lsock),
-                               PUSH_STRING(L,"acceptor")
-                               ))
-        {
-            const char * error = lua_tostring(L, -1);
-            lua_pop(L,1);
-            printf("create_socket:%s\n",error);
-            return 0;
-        }
-        lsock->luasocket = create_luaObj(L);
         PUSH_LUAOBJECT(L,lsock->luasocket);
         lua_pushnil(L);
     }
@@ -322,7 +321,6 @@ void lua_pushmsg(lua_State *L,msg_t msg){
     {
         if(MSG_TYPE(msg) == MSG_ONCONNECTED)
         {
-            printf("push MSG_ONCONNECTED\n");
             struct msg_connection *_msg = (struct msg_connection*)msg;
             luaObject_t lo = (luaObject_t)MSG_USRPTR(_msg);
             PUSH_TABLE3(L,PUSH_LUAOBJECT(L,_msg->sockobj),
@@ -352,9 +350,18 @@ void lua_pushmsg(lua_State *L,msg_t msg){
 
 int lua_node_peekmsg(lua_State *L)
 {
+
+	if(g_nodelua->flag == 1)
+	{
+		thread_join(g_main_thd);
+		lua_pushnil(L);
+		lua_pushstring(L,"stoped");
+		return 2;
+	}
+
     int ms = (int)lua_tonumber(L,1);
     lnode *n;
-    if(0 != msgque_get(g_nodelua->mq_in,&n,ms)){
+    if(0 != msgque_get(g_nodelua->mq_out,&n,ms)){
         lua_pushnil(L);
         lua_pushstring(L,"peek error");
     }
@@ -386,6 +393,10 @@ static void mq_item_destroyer(void *ptr)
     }
 }
 
+static void sig_int(int sig){
+	g_nodelua->flag = 1;
+}
+
 int luaopen_nodelua(lua_State *L){
 
     lua_register(L,"Listen",&luaListen);
@@ -403,7 +414,7 @@ int luaopen_nodelua(lua_State *L){
     g_nodelua->netpoller = new_service();
     g_luaState = L;
     thread_start_run(g_main_thd,node_mainloop,NULL);
-    //signal(SIGINT,sig_int);
+    signal(SIGINT,sig_int);
     signal(SIGPIPE,SIG_IGN);
     printf("load c function finish\n");
     return 0;

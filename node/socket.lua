@@ -1,5 +1,5 @@
-dofile("queue.lua")
-dofile("light_process.lua")
+dofile("node/queue.lua")
+dofile("node/light_process.lua")
 
 socket = {
         type = nil,     -- data or listen
@@ -24,10 +24,10 @@ function socket:accept()
         end
         local msg = self.msgque:pop()
         if msg[1] ~= "newconnection" then
-                print("error")
+			print("error")
         else
-                print("a new connection")
-                return msg[2]
+			print("a new connection")
+			return msg[2]
         end
     end
 end
@@ -45,8 +45,8 @@ function socket:recv(timeout)
             Block(timeout)
         end
         local msg = self.msgque:pop()
-        if msg[1] ~= "packet" or msg[1] ~= "disconnected" then
-                print("error")
+        if msg[1] ~= "packet" and msg[1] ~= "disconnected" then
+                print("error" .. msg[1])
         else
                 return msg[2],msg[3]
         end
@@ -69,7 +69,7 @@ end
 function socket:pushmsg(msg)
     self.msgque:push(msg)
     if self.lprocess and self.lprocess.status == "block" then
-        WakeUp(self.lprocess)
+		WakeUp(self.lprocess)
     end
 end
 

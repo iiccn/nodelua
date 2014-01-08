@@ -23,21 +23,21 @@ function queue:push(msg)
 		self.tail.next = node
 		self.tail = node
 	end
-	self.size = size.size + 1
+	self.size = self.size + 1
 end
 
 function queue:pop()
-        if not self.head then
+    if not self.head then
 		return nil
 	else
 		local node = self.head
 		local next = node.next
 		if next == nil then
-                        self.head = nil
-                        self.tail = nil
+			self.head = nil
+			self.tail = nil
 		end
 		self.size = self.size - 1
-		return node.msg
+		return node.value
 	end
 end
 
