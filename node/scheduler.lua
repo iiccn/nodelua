@@ -125,7 +125,7 @@ function Sleep(ms)
 end
 
 function Block(ms)
-    global_sc:Block()
+    global_sc:Block(ms)
 end
 
 function WakeUp(lprocess)
@@ -137,6 +137,7 @@ function GetCurrentLightProcess()
 end
 
 function lp_start_fun(lp)
+        print("lp_start_fun")
 	global_sc.CoroCount = global_sc.CoroCount + 1
 	lp.start_func(lp.ud)
 	lp.status = "dead"
@@ -144,6 +145,7 @@ function lp_start_fun(lp)
 end
 
 function node_spwan(ud,mainfun)
+    print("node_spwan")
     local lprocess = light_process:new()
     lprocess.croutine = coroutine.create(lp_start_fun)
     lprocess.ud = ud
@@ -152,11 +154,15 @@ function node_spwan(ud,mainfun)
 end
 
 function node_process_msg(msg)
-	local recver = msg[1]
+        local recver = sock_container[msg[1]]
 	local type = msg[2]
+        print(recver)
+        print(type)
 	if type == "packet" then
 		recver:pushmsg({"packet",msg[3],nil})
 	elseif type == "newconnection" then
+                print(recver)
+                print(msg[3])
 		recver:pushmsg({"newconnection",msg[3]})
 	elseif type == "disconnected" then
 		recver.csocket = nil
@@ -170,33 +176,43 @@ function node_loop()
     while true do
         global_sc:Schedule()
         local msg,err = PeekMsg(50)
-		if err and err == "stoped" then
-			return
-		end
-		if msg then
-			node_process_msg(msg)
-		end
+            if err and err == "stoped" then
+                    return
+            end
+            if msg then
+                    node_process_msg(msg)
+            end
     end
 end
 
 function tcp_listen(ip,port)
-    return Listen(ip,port)
+    local l,err = Listen(ip,port)
+    print(l)
+    if l ~= nil then
+        return sock_container[l],nil
+    else
+        return nil,err
+    end
 end
 
 function tcp_connect(ip,port,timeout)
-    local connect_sock = Connect(ip,port,timeout)
-    if connect_sock.msgque:is_empty() then
-        if not connect_sock.lprocess then
-            connect_sock.lprocess = GetCurrentLightProcess()
-        end
-        --block
-        Block()
-    end
+    --local connect_sock = create_socket(nil,"connector")
+    local connect_sock = socket:new()
+    connect_sock.type = "connector"
+    connect_sock.lprocess = GetCurrentLightProcess()
+    connect_sock.csocket = nil
+    Connect(connect_sock.index,ip,port,timeout)
+    print(connect_sock)
+    connect_sock.lprocess = GetCurrentLightProcess()
+    print(connect_sock.lprocess)
+    Block()
+    print("wake up")
     local msg = connect_sock.msgque:pop()
+    connect_sock:close()
     if msg[1] == "connect_failed" then
            return nil,msg[3]
     elseif msg[1] == "newconnection" then
-           return msg[1],nil
+           return sock_container[msg[2]],nil
     else
            return nil,"fatal error"
     end

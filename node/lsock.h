@@ -13,7 +13,8 @@ typedef struct _lsock
     struct dnode            dn;
     struct connection       *c;
     SOCK                     s;
-    luaObject_t             luasocket;
+    int                     lindex;
+    //luaObject_t             luasocket;
 }*_lsock_t;
 
 

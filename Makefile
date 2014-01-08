@@ -2,7 +2,7 @@ CFLAGS = -g -Wall
 LDFLAGS = -lpthread -lrt
 SHARED = -fPIC --shared
 CC = gcc
-INCLUDE = -I../luanet/kendynet/core -I../luanet/kendynet -I.. -I../../lua-5.2.3/src -I../lua-5.2.3/src
+INCLUDE = -I../luanet/kendynet/core -I../luanet/kendynet -I..
 DEFINE = -D_DEBUG -D_LINUX -DMQ_HEART_BEAT
 
 kendynet.a: \
@@ -38,7 +38,7 @@ nodelua:node/nodelua.c node/lsock.c kendynet.a
 	$(CC) $(SHARED) -o nodelua.so nodelua.o lsock.o kendynet.a $(LDFLAGS) $(DEFINE)
 	rm -f *.o
 test:kendynet.a 	test.c
-	$(CC) $(CFLAGS) -o test test.c kendynet.a ../lua-5.2.3/src/liblua.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -lm
+	$(CC) $(CFLAGS) -o test test.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -llua -ldl -lm
 	
 	
 	
