@@ -7,9 +7,9 @@ port = nil
 local send_data = [[hellohellohellohello]]
 
 function connect_fun(l)
-    local sock,err = tcp_connect(ip,port,30)
+    local sock,err = tcp_connect(ip,port,30000)
     if sock then
-		print("connect sucessful")
+        print("connect sucessful")
         sock:send(send_data)
         while true do
             local data,err = sock:recv()

@@ -34,7 +34,7 @@ struct msg_connection
     int32_t     port;
     uint32_t    reason;
 	union{
-		int     lindex;
+        luaObject_t sockobj;
 		void    *ptr;
 	};
 };
@@ -44,7 +44,7 @@ struct msg_connect_failed
 {
     struct msg  base;
     uint32_t    reason;
-    int         lindex;
+    luaObject_t sockobj;
 };
 
 //lua -> c
@@ -54,7 +54,7 @@ struct msg_connect_request
     char        ip[32];
     int32_t     port;
     uint32_t    timeout;
-	int     lindex;
+    luaObject_t sockobj;
 
 };
 
@@ -82,7 +82,7 @@ static void luasock_disconnect(struct connection *c,uint32_t reason)
     struct msg_connection *msg = calloc(1,sizeof(*msg));
     MSG_TYPE(msg) = MSG_DISCONNECTED;
     MSG_USRPTR(msg) = d;
-    msg->lindex = d->lindex;
+    msg->sockobj = d->sockobj;
     msg->reason = reason;
     if(0 != msgque_put_immeda(g_nodelua->mq_out,(lnode*)msg))
         free(msg);
@@ -100,7 +100,6 @@ static int8_t lua_process_packet(struct connection *c,rpacket_t r)
 
 static void accpet_callback(SOCK sock,struct sockaddr_in *addr_remote,void *ud)
 {
-    //new_connection(sock,addr_remote,ud);
 	struct msg_connection *msg = calloc(1,sizeof(*msg));
     MSG_TYPE(msg) = MSG_ONCONNECTED;
 	msg->ptr = ud;
@@ -117,7 +116,7 @@ static void connect_callback(SOCK s,struct sockaddr_in *addr,void *ud,int err)
         //connect failed
         struct msg_connect_failed *msg = calloc(1,sizeof(*msg));
         MSG_TYPE(msg) = MSG_CONNECT_FAIL;
-        msg->lindex = (int)ud;
+        msg->sockobj = (luaObject_t)ud;
         msg->reason =  err;
         msgque_put_immeda(g_nodelua->mq_out,(lnode*)msg);
     }else{
@@ -133,11 +132,12 @@ static int luaConnect(lua_State *L)
 {
     struct msg_connect_request *msg = calloc(1,sizeof(*msg));
     MSG_TYPE(msg) = MSG_CONNECT;
-    msg->lindex = (int)lua_tonumber(L,1);
-    const char *ip = lua_tostring(L,2);
+    const char *ip = lua_tostring(L,1);
     strncpy(msg->ip,ip,32);
-    msg->port = (uint16_t)lua_tonumber(L,3);
-    msg->timeout = (uint32_t)lua_tonumber(L,4);
+    msg->port = (uint16_t)lua_tonumber(L,2);
+    msg->timeout = (uint32_t)lua_tonumber(L,3);
+    msg->sockobj = create_luaObj(L);
+    printf("%s,%d,%d\n",ip,msg->port,msg->timeout);
     msgque_put_immeda(g_nodelua->mq_in,(lnode*)msg);
     return 0;
 }
@@ -156,8 +156,8 @@ static int luaListen(lua_State *L)
 		printf("create_socket:%s\n",error);
 		return 0;
 	}	
-    lsock->lindex = (int)lua_tonumber(L,-1);
-    SOCK s = g_nodelua->netpoller->listen(g_nodelua->netpoller,ip,port,(void*)lsock->lindex,accpet_callback);
+    lsock->sockobj = create_luaObj(L);
+    SOCK s = g_nodelua->netpoller->listen(g_nodelua->netpoller,ip,port,(void*)lsock->sockobj,accpet_callback);
     if(INVALID_SOCK == s)
     {
         luasock_release(lsock);
@@ -166,7 +166,7 @@ static int luaListen(lua_State *L)
     }else
     {
         lsock->s = s;
-        lua_pushnumber(L,lsock->lindex);
+        PUSH_LUAOBJECT(L,lsock->sockobj);
         lua_pushnil(L);
     }
     return 2;
@@ -229,7 +229,7 @@ static void process_msg(msg_t msg)
     }else if(msg->type == MSG_CONNECT){
         printf("MSG_CONNECT\n");
         struct msg_connect_request *_msg = (struct msg_connect_request*)msg;
-        g_nodelua->netpoller->connect(g_nodelua->netpoller,_msg->ip,_msg->port,(void*)_msg->lindex,connect_callback,_msg->timeout);
+        g_nodelua->netpoller->connect(g_nodelua->netpoller,_msg->ip,_msg->port,(void*)_msg->sockobj,connect_callback,_msg->timeout);
     }
     if(MSG_FN_DESTROY(msg))
         MSG_FN_DESTROY(msg)((void*)msg);
@@ -302,13 +302,13 @@ static inline void new_connection(lua_State *L,SOCK sock,void *ud)
         lua_pop(L,1);
         printf("%s\n",error);
     }
-    ls->lindex = (int)lua_tonumber(L,-1);
+    ls->sockobj = create_luaObj(L);
     g_nodelua->netpoller->bind(g_nodelua->netpoller,c,lua_process_packet,luasock_disconnect,
                        0,NULL,0,NULL);
-					   
-	PUSH_TABLE3(L,PUSH_NUMBER(L,(int)ud),
+    luaObject_t t = (luaObject_t)ud;
+    PUSH_TABLE3(L,PUSH_LUAOBJECT(L,t),
 				  PUSH_STRING(L,"newconnection"),
-				  PUSH_NUMBER(L,ls->lindex)
+                  PUSH_LUAOBJECT(L,ls->sockobj)
 				);					   
 }
 
@@ -318,7 +318,7 @@ void lua_pushmsg(lua_State *L,msg_t msg){
 		//printf("MSG_RPACKET\n");
         rpacket_t rpk = (rpacket_t)msg;
         _lsock_t ls = (_lsock_t)MSG_USRPTR(msg);
-        PUSH_TABLE3(L,PUSH_NUMBER(L,ls->lindex),
+        PUSH_TABLE3(L,PUSH_LUAOBJECT(L,ls->sockobj),
                       PUSH_STRING(L,"packet"),
                       PUSH_STRING(L,rpk_read_string(rpk))
                     );
@@ -334,15 +334,15 @@ void lua_pushmsg(lua_State *L,msg_t msg){
         {
 			//printf("MSG_DISCONNECTED\n");
             struct msg_connection *_msg = (struct msg_connection*)msg;
-            PUSH_TABLE3(L,PUSH_NUMBER(L,_msg->lindex),
+            PUSH_TABLE3(L,PUSH_LUAOBJECT(L,_msg->sockobj),
                           PUSH_STRING(L,"disconnected"),
                           PUSH_NUMBER(L,_msg->reason));
             luasock_release((_lsock_t)MSG_USRPTR(_msg));
         }else if(MSG_TYPE(msg) == MSG_CONNECT_FAIL)
         {
-            //printf("MSG_CONNECT_FAIL\n");
             struct msg_connect_failed *_msg = (struct msg_connect_failed*)msg;
-            PUSH_TABLE3(L,PUSH_NUMBER(L,_msg->lindex),
+            printf("MSG_CONNECT_FAIL:%d\n",_msg->reason);
+            PUSH_TABLE3(L,PUSH_LUAOBJECT(L,_msg->sockobj),
                           PUSH_STRING(L,"connect_failed"),
                           PUSH_NUMBER(L,_msg->reason));
         }

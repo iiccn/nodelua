@@ -156,7 +156,7 @@ function node_spwan(ud,mainfun)
 end
 
 function node_process_msg(msg)
-    local recver = sock_container[msg[1]]
+    local recver = msg[1]
 	if not recver then
 		return
 	end
@@ -169,6 +169,7 @@ function node_process_msg(msg)
 		recver.csocket = nil
 		recver:pushmsg({"disconnected",nil,msg[3]})
 	elseif type == "connect_failed" then
+                print(recver)
 		recver:pushmsg({"connect_failed",nil,msg[3]})
 	end
 end
@@ -195,7 +196,7 @@ function node_loop(ms)
 		if tick - 1000 >= lasttick then
 			if packet_recv_count then
 				print("packet_recv_count:" .. packet_recv_count .. 
-				" packet_recv_size:" .. packet_recv_size/1024/1024 .. "qc:" .. sock_index_pool:len())
+                                " packet_recv_size:" .. packet_recv_size/1024/1024)
 				packet_recv_count = 0
 				packet_recv_size = 0
 			end
@@ -208,7 +209,7 @@ function tcp_listen(ip,port)
     local l,err = Listen(ip,port)
     print(l)
     if l ~= nil then
-        return sock_container[l],nil
+        return l,nil
     else
         return nil,err
     end
@@ -216,15 +217,15 @@ end
 
 function tcp_connect(ip,port,timeout)
     local connect_sock = create_socket(nil,"connector")
-	connect_sock = sock_container[connect_sock]
-    Connect(connect_sock.index,ip,port,timeout)
+    print("timeout " .. timeout)
+    Connect(ip,port,timeout,connect_sock)
     Block()
     local msg = connect_sock.msgque:pop()
     connect_sock:close()
     if msg[1] == "connect_failed" then
            return nil,msg[3]
     elseif msg[1] == "newconnection" then
-           return sock_container[msg[2]],nil
+           return msg[2],nil
     else
            return nil,"fatal error"
     end
