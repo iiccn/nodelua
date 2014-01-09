@@ -45,6 +45,6 @@ function queue:is_empty()
 	return self.size == 0
 end
 
-function queue:size()
+function queue:len()
 	return self.size
 end

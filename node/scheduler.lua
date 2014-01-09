@@ -48,7 +48,7 @@ function scheduler:Block(ms)
     coroutine.yield(lprocess.croutine)
     --被唤醒了，如果还有超时在队列中，这里需要将这个结构放到队列头，并将其删除
     if lprocess.index ~= 0 then
-        sock.timeout = 0
+        lprocess.timeout = 0		
         self.m_timer:Change(lprocess)
         self.m_timer:PopMin()
     end
@@ -137,11 +137,13 @@ function GetCurrentLightProcess()
 end
 
 function lp_start_fun(lp)
-        print("lp_start_fun")
+    print("lp_start_fun")
 	global_sc.CoroCount = global_sc.CoroCount + 1
 	lp.start_func(lp.ud)
 	lp.status = "dead"
+	lp.ud = nil
 	global_sc.CoroCount = global_sc.CoroCount - 1
+	print("end lp_start_fun")
 end
 
 function node_spwan(ud,mainfun)
@@ -154,15 +156,14 @@ function node_spwan(ud,mainfun)
 end
 
 function node_process_msg(msg)
-        local recver = sock_container[msg[1]]
+    local recver = sock_container[msg[1]]
+	if not recver then
+		return
+	end
 	local type = msg[2]
-        print(recver)
-        print(type)
 	if type == "packet" then
 		recver:pushmsg({"packet",msg[3],nil})
 	elseif type == "newconnection" then
-                print(recver)
-                print(msg[3])
 		recver:pushmsg({"newconnection",msg[3]})
 	elseif type == "disconnected" then
 		recver.csocket = nil
@@ -172,16 +173,34 @@ function node_process_msg(msg)
 	end
 end
 
-function node_loop()
-    while true do
+function node_loop(ms)
+--[[    global_sc:Schedule()
+	local msg,err = PeekMsg(ms)
+	if msg then
+		node_process_msg(msg)
+	end
+	return err
+]]--	
+	local lasttick = GetSysTick()
+	while true do
         global_sc:Schedule()
         local msg,err = PeekMsg(50)
-            if err and err == "stoped" then
-                    return
-            end
-            if msg then
-                    node_process_msg(msg)
-            end
+		if err and err == "stoped" then
+		   return
+		end
+		if msg then
+		   node_process_msg(msg)
+		end
+		local tick = GetSysTick()
+		if tick - 1000 >= lasttick then
+			if packet_recv_count then
+				print("packet_recv_count:" .. packet_recv_count .. 
+				" packet_recv_size:" .. packet_recv_size/1024/1024 .. "qc:" .. sock_index_pool:len())
+				packet_recv_count = 0
+				packet_recv_size = 0
+			end
+			lasttick = tick
+		end		
     end
 end
 
@@ -196,17 +215,10 @@ function tcp_listen(ip,port)
 end
 
 function tcp_connect(ip,port,timeout)
-    --local connect_sock = create_socket(nil,"connector")
-    local connect_sock = socket:new()
-    connect_sock.type = "connector"
-    connect_sock.lprocess = GetCurrentLightProcess()
-    connect_sock.csocket = nil
+    local connect_sock = create_socket(nil,"connector")
+	connect_sock = sock_container[connect_sock]
     Connect(connect_sock.index,ip,port,timeout)
-    print(connect_sock)
-    connect_sock.lprocess = GetCurrentLightProcess()
-    print(connect_sock.lprocess)
     Block()
-    print("wake up")
     local msg = connect_sock.msgque:pop()
     connect_sock:close()
     if msg[1] == "connect_failed" then
