@@ -23,9 +23,12 @@ function connect_fun(l)
     end
 end
 
-function main()
+function main(arg)
 	ip = arg[1]
 	port = tonumber(arg[2])
+	print(ip)
+	print(port)
+	print(arg[3])
 	local count = tonumber(arg[3])
 	while count > 0 do
 		node_spwan(nil,connect_fun) --spwan a light process to do accept
@@ -33,6 +36,4 @@ function main()
     end
     node_loop()
     print("see you!")
-    exit(0)
 end
-main()

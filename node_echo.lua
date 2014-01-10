@@ -34,8 +34,7 @@ function listen_fun(l)
     end
 end
 
-function main()		
-    --local l,err = tcp_listen("127.0.0.1",8010)--arg[1],arg[2])
+function main(arg)		
 	local l,err = tcp_listen(arg[1],arg[2])
 	if err then
 		print("listen error")
@@ -48,5 +47,3 @@ function main()
     node_loop()
 	print("see you!")
 end
-
-main()

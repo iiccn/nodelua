@@ -132,11 +132,12 @@ static int luaConnect(lua_State *L)
 {
     struct msg_connect_request *msg = calloc(1,sizeof(*msg));
     MSG_TYPE(msg) = MSG_CONNECT;
-    const char *ip = lua_tostring(L,1);
+	msg->sockobj = create_luaObj(L,1);
+    const char *ip = lua_tostring(L,2);
     strncpy(msg->ip,ip,32);
-    msg->port = (uint16_t)lua_tonumber(L,2);
-    msg->timeout = (uint32_t)lua_tonumber(L,3);
-    msg->sockobj = create_luaObj(L);
+    msg->port = (uint16_t)lua_tonumber(L,3);
+    msg->timeout = (uint32_t)lua_tonumber(L,4);
+    
     printf("%s,%d,%d\n",ip,msg->port,msg->timeout);
     msgque_put_immeda(g_nodelua->mq_in,(lnode*)msg);
     return 0;
@@ -156,7 +157,7 @@ static int luaListen(lua_State *L)
 		printf("create_socket:%s\n",error);
 		return 0;
 	}	
-    lsock->sockobj = create_luaObj(L);
+    lsock->sockobj = create_luaObj(L,-1);
     SOCK s = g_nodelua->netpoller->listen(g_nodelua->netpoller,ip,port,(void*)lsock->sockobj,accpet_callback);
     if(INVALID_SOCK == s)
     {
@@ -302,7 +303,7 @@ static inline void new_connection(lua_State *L,SOCK sock,void *ud)
         lua_pop(L,1);
         printf("%s\n",error);
     }
-    ls->sockobj = create_luaObj(L);
+    ls->sockobj = create_luaObj(L,-1);
     g_nodelua->netpoller->bind(g_nodelua->netpoller,c,lua_process_packet,luasock_disconnect,
                        0,NULL,0,NULL);
     luaObject_t t = (luaObject_t)ud;

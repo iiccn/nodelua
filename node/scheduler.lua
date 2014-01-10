@@ -218,7 +218,7 @@ end
 function tcp_connect(ip,port,timeout)
     local connect_sock = create_socket(nil,"connector")
     print("timeout " .. timeout)
-    Connect(ip,port,timeout,connect_sock)
+    Connect(connect_sock,ip,port,timeout)
     Block()
     local msg = connect_sock.msgque:pop()
     connect_sock:close()
