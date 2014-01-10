@@ -1,5 +1,5 @@
 CFLAGS = -g -Wall 
-LDFLAGS = -lpthread -lrt
+LDFLAGS = -lpthread -lrt -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -I../luanet/kendynet/core -I../luanet/kendynet -I..
@@ -37,8 +37,8 @@ nodelua:node/nodelua.c node/lsock.c kendynet.a
 	$(CC) $(CFLAGS) -c $(SHARED) node/nodelua.c node/lsock.c $(INCLUDE) $(DEFINE) 
 	$(CC) $(SHARED) -o nodelua.so nodelua.o lsock.o kendynet.a $(LDFLAGS) $(DEFINE)
 	rm -f *.o
-test:kendynet.a 	test.c
-	$(CC) $(CFLAGS) -o test test.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -llua -ldl -lm
+node:kendynet.a nodelua.c
+	$(CC) $(CFLAGS) -o nodelua nodelua.c kendynet.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -llua -ldl -lm
 	
 	
 	
