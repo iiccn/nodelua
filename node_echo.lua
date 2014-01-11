@@ -5,14 +5,17 @@ dofile("node/scheduler.lua")
 
 packet_recv_count = 0
 packet_recv_size = 0
+client_count = 0
 
 function doio(s)
+	client_count = client_count + 1
 	print("doio")
     while true do
         local data,err = s:recv(10000)
         if err then
 			print("a socket disconnect " .. err)
 			s:close()
+			client_count = client_count - 1
             return
         else
 			packet_recv_count = packet_recv_count + 1

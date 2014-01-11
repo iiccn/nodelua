@@ -3,7 +3,7 @@ LDFLAGS = -lpthread -lrt -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -I../luanet/kendynet/core -I../luanet/kendynet -I..
-DEFINE = -D_DEBUG -D_LINUX -DMQ_HEART_BEAT
+DEFINE = -D_DEBUG -D_LINUX
 
 kendynet.a: \
 		   ../luanet/kendynet/core/src/buffer.c \

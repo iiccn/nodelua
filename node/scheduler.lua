@@ -107,6 +107,8 @@ function scheduler:Schedule()
             self:Add2Active(lprocess)
         end
     end
+    
+    return #self.pending_add
 end
 
 function scheduler:WakeUp(lprocess)
@@ -158,6 +160,7 @@ end
 function node_process_msg(msg)
     local recver = msg[1]
 	if not recver then
+		print("recver == nil")
 		return
 	end
 	local type = msg[2]
@@ -165,37 +168,39 @@ function node_process_msg(msg)
 		recver:pushmsg({"packet",msg[3],nil})
 	elseif type == "newconnection" then
 		recver:pushmsg({"newconnection",msg[3]})
+		global_sc:Schedule()
 	elseif type == "disconnected" then
 		recver.csocket = nil
 		recver:pushmsg({"disconnected",nil,msg[3]})
 	elseif type == "connect_failed" then
-                print(recver)
+        print(recver)
 		recver:pushmsg({"connect_failed",nil,msg[3]})
 	end
 end
 
-function node_loop(ms)
---[[    global_sc:Schedule()
-	local msg,err = PeekMsg(ms)
-	if msg then
-		node_process_msg(msg)
-	end
-	return err
-]]--	
+function node_loop()
 	local lasttick = GetSysTick()
 	while true do
-        global_sc:Schedule()
-        local msg,err = PeekMsg(50)
+        local active_size = global_sc:Schedule()
+		local slms = 50
+		if active_size > 0 then
+			slms = 0
+		end
+		Flush()
+		local msgs,err = PeekMsg(slms)
 		if err and err == "stoped" then
 		   return
-		end
-		if msg then
-		   node_process_msg(msg)
+		elseif msgs then
+			for k,msg in pairs(msgs) do
+				node_process_msg(msg)
+				--global_sc:Schedule()
+			end
+			Flush()
 		end
 		local tick = GetSysTick()
 		if tick - 1000 >= lasttick then
 			if packet_recv_count then
-				print("packet_recv_count:" .. packet_recv_count .. 
+				print("client_count:" .. client_count .. " packet_recv_count:" .. packet_recv_count .. 
                                 " packet_recv_size:" .. packet_recv_size/1024/1024)
 				packet_recv_count = 0
 				packet_recv_size = 0

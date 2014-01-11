@@ -173,13 +173,13 @@ static int luaListen(lua_State *L)
     return 2;
 }
 
-_lsock_t   lua_poplsock(lua_State *L,int idx)
+static inline _lsock_t lua_poplsock(lua_State *L,int idx)
 {
     return (_lsock_t)lua_touserdata(L,idx);
 }
 
 
-wpacket_t luaGetluaWPacket(lua_State *L,int idx)
+static inline wpacket_t luaGetluaWPacket(lua_State *L,int idx)
 {
     wpacket_t wpk = wpk_create(128,1);
     wpk_write_string(wpk,lua_tostring(L,idx));
@@ -221,7 +221,7 @@ static void notify_function(void *arg)
     g_nodelua->netpoller->wakeup(g_nodelua->netpoller);
 }
 
-static void process_msg(msg_t msg)
+static inline void process_msg(msg_t msg)
 {
     if(msg->type == MSG_ACTIVE_CLOSE)
     {
@@ -276,6 +276,7 @@ static void *node_mainloop(void *arg)
             }
             tick = GetSystemMs();
         }
+        msgque_flush();
         if(is_empty){
             //注册中断器，如果阻塞在loop里时mq_in收到消息会调用唤醒函数唤醒loop
             msgque_putinterrupt(g_nodelua->mq_in,NULL,notify_function);
@@ -303,7 +304,9 @@ static inline void new_connection(lua_State *L,SOCK sock,void *ud)
         lua_pop(L,1);
         printf("%s\n",error);
     }
+   
     ls->sockobj = create_luaObj(L,-1);
+    lua_pop(L,1);
     g_nodelua->netpoller->bind(g_nodelua->netpoller,c,lua_process_packet,luasock_disconnect,
                        0,NULL,0,NULL);
     luaObject_t t = (luaObject_t)ud;
@@ -313,7 +316,7 @@ static inline void new_connection(lua_State *L,SOCK sock,void *ud)
 				);					   
 }
 
-void lua_pushmsg(lua_State *L,msg_t msg){
+static inline void lua_pushmsg(lua_State *L,msg_t msg){
     if(MSG_TYPE(msg) == MSG_RPACKET)
     {
 		//printf("MSG_RPACKET\n");
@@ -342,7 +345,7 @@ void lua_pushmsg(lua_State *L,msg_t msg){
         }else if(MSG_TYPE(msg) == MSG_CONNECT_FAIL)
         {
             struct msg_connect_failed *_msg = (struct msg_connect_failed*)msg;
-            printf("MSG_CONNECT_FAIL:%d\n",_msg->reason);
+            //printf("MSG_CONNECT_FAIL:%d\n",_msg->reason);
             PUSH_TABLE3(L,PUSH_LUAOBJECT(L,_msg->sockobj),
                           PUSH_STRING(L,"connect_failed"),
                           PUSH_NUMBER(L,_msg->reason));
@@ -355,7 +358,7 @@ void lua_pushmsg(lua_State *L,msg_t msg){
 
 int lua_node_peekmsg(lua_State *L)
 {
-
+	static int32_t push_size = 512;
 	if(g_nodelua->flag == 1)
 	{
 		thread_join(g_main_thd);
@@ -363,23 +366,28 @@ int lua_node_peekmsg(lua_State *L)
 		lua_pushstring(L,"stoped");
 		return 2;
 	}
-
-    int ms = (int)lua_tonumber(L,1);
-    lnode *n;
-    if(0 != msgque_get(g_nodelua->mq_out,&n,ms)){
-        lua_pushnil(L);
-        lua_pushstring(L,"peek error");
-    }
-    else{
-        if(n){
-            lua_pushmsg(L,(msg_t)n);
-            lua_pushnil(L);
-        }else{
-            lua_pushnil(L);
-            lua_pushstring(L,"timeout");
-        }
-    }
-    return 2;
+	
+	int ms = (int)lua_tonumber(L,1);
+	lnode *n;
+	int32_t len = msgque_len(g_nodelua->mq_out,ms);
+	if(len > 0)
+	{
+		if(len > push_size)len = push_size;
+		lua_newtable(L);
+		int i = 0;
+		for(; i < len;++i)
+		{
+			msgque_get(g_nodelua->mq_out,&n,0);
+			lua_pushmsg(L,(msg_t)n);
+			lua_rawseti(L,-2,i+1);
+		}
+		lua_pushnil(L);
+	}else
+	{
+		lua_pushnil(L);
+        lua_pushstring(L,"timeout");
+	}
+	return 2;
 }
 
 static void mq_item_destroyer(void *ptr)
@@ -402,10 +410,16 @@ static void sig_int(int sig){
 	g_nodelua->flag = 1;
 }
 
-static int luaexit(lua_State *L)
+/*static int luaexit(lua_State *L)
 {
     exit((int)lua_tonumber(L,-1));
     return 0;
+}*/
+
+static int luaMsgQueFlush(lua_State *L)
+{
+	msgque_flush();
+	return 0;
 }
 
 int luaopen_nodelua(lua_State *L){
@@ -416,13 +430,13 @@ int luaopen_nodelua(lua_State *L){
     lua_register(L,"GetSysTick",&luaGetSysTick);
     lua_register(L,"SendPacket",&luaSendPacket);
     lua_register(L,"PeekMsg",&lua_node_peekmsg);
-    lua_register(L,"exit",&luaexit);
+    lua_register(L,"Flush",&luaMsgQueFlush);
     InitNetSystem();
 
     g_nodelua = calloc(1,sizeof(*g_nodelua));
     g_main_thd = create_thread(THREAD_JOINABLE);
-    g_nodelua->mq_in = new_msgque(32,mq_item_destroyer);
-    g_nodelua->mq_out = new_msgque(32,mq_item_destroyer);
+    g_nodelua->mq_in = new_msgque(512,mq_item_destroyer);
+    g_nodelua->mq_out = new_msgque(512,mq_item_destroyer);
     g_nodelua->netpoller = new_service();
     g_luaState = L;
     thread_start_run(g_main_thd,node_mainloop,NULL);
