@@ -1,5 +1,11 @@
-###lua coroutine实现的网络框架.使用方式类似go语言,利用coroutine提供阻塞式的io接口.
-###网络处理在C中实现由一个单独的线程处理,C和lua之间通过一个消息队列通信.
+使用过go的同学可能都会感觉go的网络接口非常方便，提供同步的处理方式，结合goroutine实现并发.
+
+nodelua正是结合了异步网络和lua coroutine实现的类似go的网络处理接口.与go不同的是多个lua coroutine
+不能像goroutine那样在多个处理器上并发执行.
+
+
+nodelua的网络层使用了我另外一个项目中的kendynet,运行在单独的线程中，网络和lua之间通过消息队列通信.
+测试效率不比C的差多少（使用luagit运行，如果没有luagit运行效率只有C版本的不到一半）
 
 ------------echoserver-----------------
 
