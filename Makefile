@@ -24,10 +24,19 @@ kendynet.a: \
 		   ../luanet/kendynet/core/src/timer.c \
 		   ../luanet/kendynet/core/src/uthread.c \
 		   ../luanet/kendynet/core/src/refbase.c \
-		   ../luanet/kendynet/core/src/asynnet.c \
-		   ../luanet/kendynet/core/src/asynsock.c \
+		   ../luanet/kendynet/core/src/log.c \
+		   ../luanet/kendynet/core/asynnet/src/asynnet.c \
+		   ../luanet/kendynet/core/asynnet/src/asynsock.c \
+		   ../luanet/kendynet/core/asynnet/src/msgdisp.c \
+		   ../luanet/kendynet/core/asynnet/src/asyncall.c \
+		   ../luanet/kendynet/core/src/atomic_st.c \
 		   ../luanet/kendynet/core/src/tls.c \
 		   ../luanet/kendynet/core/src/lua_util.c\
+		   ../luanet/kendynet/core/src/lua_util.c\
+		   ../luanet/kendynet/core/src/kn_string.c\
+		   ../luanet/kendynet/core/src/hash_map.c\
+		   ../luanet/kendynet/core/src/minheap.c\
+		   ../luanet/kendynet/core/src/lookup8.c\
 		   ../luanet/kendynet/core/src/wpacket.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o

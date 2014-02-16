@@ -71,7 +71,9 @@ function data_socket:recv(timeout)
 end
 
 function data_socket:send(data)
+	--print("data_socket:send 1")
     if self.csocket then
+		--print("data_socket:send 2")
         SendPacket(self.csocket,data)
     else
         return nil,"disconnected"
@@ -121,7 +123,7 @@ end
 
 --for c function to call
 function create_socket(csocket,type)
-    print("create_socket")
+    --print("create_socket")
     local n
     if type == "data" then
             n = data_socket:new()
@@ -132,5 +134,6 @@ function create_socket(csocket,type)
             n:init()
     end
     n.csocket = csocket
+    --print(csocket)
     return n
 end

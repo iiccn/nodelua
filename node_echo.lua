@@ -9,7 +9,7 @@ client_count = 0
 
 function doio(s)
 	client_count = client_count + 1
-	print("doio")
+	--print("doio")
     while true do
         local data,err = s:recv(10000)
         if err then
@@ -18,9 +18,13 @@ function doio(s)
 			client_count = client_count - 1
             return
         else
+			--print("recv packet")
 			packet_recv_count = packet_recv_count + 1
-			packet_recv_size = packet_recv_size + string.len(data)
+			--print("recv packet 1")
+			--packet_recv_size = packet_recv_size + string.len(data)
+			--print("recv packet 2")
             s:send(data)
+            ReleasePacket(data)
         end
     end
 end

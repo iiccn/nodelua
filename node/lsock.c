@@ -17,7 +17,7 @@ void luasock_destroy(void *ptr)
 _lsock_t luasock_new(struct connection *c)
 {
     _lsock_t sock = calloc(1,sizeof(*sock));
-    ref_init(&sock->ref,luasock_destroy,1);
+    ref_init(&sock->ref,type_asynsock,luasock_destroy,1);
     if(c){
         sock->c = c;
         c->usr_ptr = sock;

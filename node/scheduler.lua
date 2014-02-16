@@ -165,6 +165,7 @@ function node_process_msg(msg)
 	end
 	local type = msg[2]
 	if type == "packet" then
+		--print("packet")
 		recver:pushmsg({"packet",msg[3],nil})
 	elseif type == "newconnection" then
 		recver:pushmsg({"newconnection",msg[3]})

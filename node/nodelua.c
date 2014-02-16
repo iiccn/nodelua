@@ -179,19 +179,26 @@ static inline _lsock_t lua_poplsock(lua_State *L,int idx)
 }
 
 
-static inline wpacket_t luaGetluaWPacket(lua_State *L,int idx)
+/*static inline wpacket_t luaGetluaWPacket(lua_State *L,int idx)
 {
     wpacket_t wpk = wpk_create(128,1);
     wpk_write_string(wpk,lua_tostring(L,idx));
     return wpk;
-}
+}*/
 
 static int luaSendPacket(lua_State *L)
 {
     _lsock_t lsock = lua_poplsock(L,1);
     if(lsock){
         luasock_acquire(lsock);
-        wpacket_t wpk = luaGetluaWPacket(L,2);
+        struct packet *_packet = (struct packet*)lua_touserdata(L,2);
+        wpacket_t wpk = NULL;
+        if(MSG_TYPE(_packet) == MSG_WPACKET)
+			wpk = (wpacket_t)_packet;
+		else{
+			wpk = wpk_create_by_rpacket((rpacket_t)_packet);
+			//rpk_destroy((rpacket_t*)&_packet);
+		}
 		MSG_USRPTR(wpk)	= lsock;
         msgque_put(g_nodelua->mq_in,(lnode*)wpk);
         lua_pushnil(L);
@@ -242,8 +249,10 @@ static inline void process_msg(msg_t msg)
 static inline void process_send(wpacket_t wpk)
 {
     _lsock_t d = (_lsock_t)MSG_USRPTR(wpk);
-    if(d && luasock_release(d) > 0)
+    if(d && luasock_release(d) > 0){
+        //printf("send pkt\n");
         send_packet(d->c,wpk);
+	}
     else{
         //连接已失效丢弃wpk
         wpk_destroy(&wpk);
@@ -324,9 +333,9 @@ static inline void lua_pushmsg(lua_State *L,msg_t msg){
         _lsock_t ls = (_lsock_t)MSG_USRPTR(msg);
         PUSH_TABLE3(L,PUSH_LUAOBJECT(L,ls->sockobj),
                       PUSH_STRING(L,"packet"),
-                      PUSH_STRING(L,rpk_read_string(rpk))
+                      PUSH_LUSRDATA(L,rpk)
                     );
-        rpk_destroy((rpacket_t*)&msg);
+        //rpk_destroy((rpacket_t*)&msg);
     }else
     {
         if(MSG_TYPE(msg) == MSG_ONCONNECTED)
@@ -422,6 +431,13 @@ static int luaMsgQueFlush(lua_State *L)
 	return 0;
 }
 
+static int luaReleasePacket(lua_State *L)
+{
+	void *_packet = (void*)lua_touserdata(L,-1);
+	mq_item_destroyer(_packet);
+	return 0;
+}
+
 int luaopen_nodelua(lua_State *L){
 
     lua_register(L,"Listen",&luaListen);
@@ -431,8 +447,9 @@ int luaopen_nodelua(lua_State *L){
     lua_register(L,"SendPacket",&luaSendPacket);
     lua_register(L,"PeekMsg",&lua_node_peekmsg);
     lua_register(L,"Flush",&luaMsgQueFlush);
+    lua_register(L,"ReleasePacket",&luaReleasePacket);
     InitNetSystem();
-
+	msgque_flush_time = 10;
     g_nodelua = calloc(1,sizeof(*g_nodelua));
     g_main_thd = create_thread(THREAD_JOINABLE);
     g_nodelua->mq_in = new_msgque(32,mq_item_destroyer);
