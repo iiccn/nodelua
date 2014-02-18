@@ -171,6 +171,7 @@ function node_process_msg(msg)
 		recver:pushmsg({"newconnection",msg[3]})
 		global_sc:Schedule()
 	elseif type == "disconnected" then
+		print(recver)
 		recver.csocket = nil
 		recver:pushmsg({"disconnected",nil,msg[3]})
 	elseif type == "connect_failed" then
@@ -188,18 +189,20 @@ function node_loop()
 			slms = 0
 		end
 		Flush()
-		local msgs,err = PeekMsg(slms)
+		local msg,err = PeekMsg(slms)
 		if err and err == "stoped" then
 		   return
-		elseif msgs then
-			for k,msg in pairs(msgs) do
-				node_process_msg(msg)
+		elseif msg then
+			node_process_msg(msg)
+			--for k,msg in pairs(msgs) do
+			--	node_process_msg(msg)
 				--global_sc:Schedule()
-			end
+			--end
 			Flush()
 		end
 		local tick = GetSysTick()
 		if tick - 1000 >= lasttick then
+			collectgarbage("collect")
 			if packet_recv_count then
 				print("client_count:" .. client_count .. " packet_recv_count:" .. packet_recv_count .. 
                                 " packet_recv_size:" .. packet_recv_size/1024/1024)

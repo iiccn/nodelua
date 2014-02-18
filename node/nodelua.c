@@ -367,7 +367,6 @@ static inline void lua_pushmsg(lua_State *L,msg_t msg){
 
 int lua_node_peekmsg(lua_State *L)
 {
-	static int32_t push_size = 512;
 	if(g_nodelua->flag == 1)
 	{
 		thread_join(g_main_thd);
@@ -375,28 +374,22 @@ int lua_node_peekmsg(lua_State *L)
 		lua_pushstring(L,"stoped");
 		return 2;
 	}
-	
-	int ms = (int)lua_tonumber(L,1);
-	lnode *n;
-	int32_t len = msgque_len(g_nodelua->mq_out,ms);
-	if(len > 0)
-	{
-		if(len > push_size)len = push_size;
-		lua_newtable(L);
-		int i = 0;
-		for(; i < len;++i)
-		{
-			msgque_get(g_nodelua->mq_out,&n,0);
-			lua_pushmsg(L,(msg_t)n);
-			lua_rawseti(L,-2,i+1);
-		}
-		lua_pushnil(L);
-	}else
-	{
-		lua_pushnil(L);
-        lua_pushstring(L,"timeout");
-	}
-	return 2;
+    int ms = (int)lua_tonumber(L,1);
+    lnode *n;
+    if(0 != msgque_get(g_nodelua->mq_out,&n,ms)){
+        lua_pushnil(L);
+        lua_pushstring(L,"peek error");
+    }
+    else{
+        if(n){
+            lua_pushmsg(L,(msg_t)n);
+            lua_pushnil(L);
+        }else{
+            lua_pushnil(L);
+            lua_pushstring(L,"timeout");
+        }
+    }
+    return 2;	
 }
 
 static void mq_item_destroyer(void *ptr)
