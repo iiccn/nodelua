@@ -8,8 +8,8 @@ void luasock_destroy(void *ptr)
         release_conn(sock->c);
     else if(sock->s != INVALID_SOCK)
         CloseSocket(sock->s);
-    if(sock->sockobj)
-        release_luaObj(sock->sockobj);
+    //if(sock->sockobj) a problem here
+    //    release_luaObj(sock->sockobj);
     free(sock);
     printf("luasocket_destroy\n");
 }
