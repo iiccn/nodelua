@@ -188,7 +188,7 @@ function node_loop()
 		if active_size > 0 then
 			slms = 0
 		end
-		Flush()
+		--Flush()
 		local msg,err = PeekMsg(slms)
 		if err and err == "stoped" then
 		   return
@@ -198,7 +198,7 @@ function node_loop()
 			--	node_process_msg(msg)
 				--global_sc:Schedule()
 			--end
-			Flush()
+			--Flush()
 		end
 		local tick = GetSysTick()
 		if tick - 1000 >= lasttick then

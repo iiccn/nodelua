@@ -1,9 +1,9 @@
-CFLAGS = -g -Wall 
-LDFLAGS = -lpthread -lrt
+CFLAGS = -O2 -g -Wall 
+LDFLAGS = -lpthread -lrt -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
 INCLUDE = -I../KendyNet/kendynet/core -I../KendyNet/kendynet -I.. -I../KendyNet/kendynet/deps/luajit-2.0/src
-DEFINE = -D_DEBUG -D_LINUX
+DEFINE = -D_DEBUG -D_LINUX -DMQ_HEART_BEAT
 
 kendynet.a: \
 		   ../KendyNet/kendynet/core/src/buffer.c \

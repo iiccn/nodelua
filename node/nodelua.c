@@ -445,8 +445,8 @@ int luaopen_nodelua(lua_State *L){
 	msgque_flush_time = 10;
     g_nodelua = calloc(1,sizeof(*g_nodelua));
     g_main_thd = create_thread(THREAD_JOINABLE);
-    g_nodelua->mq_in = new_msgque(32,mq_item_destroyer);
-    g_nodelua->mq_out = new_msgque(32,mq_item_destroyer);
+    g_nodelua->mq_in = new_msgque(512,mq_item_destroyer);
+    g_nodelua->mq_out = new_msgque(512,mq_item_destroyer);
     g_nodelua->netpoller = new_service();
     g_luaState = L;
     thread_start_run(g_main_thd,node_mainloop,NULL);
