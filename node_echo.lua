@@ -32,19 +32,17 @@ function main(arg)
 		return
 	end
 	print("listen ok")
-	if l then
-		spawn(function()
-			print("listen_fun")
-			while true do
-				local s,err = l:accept()
-				if s then
-					spawn(doio,s) --spwan a light process to do io
-				elseif err == "stop" then
-					return
-				end
+	spawn(function()
+		print("listen_fun")
+		while true do
+			local s,err = l:accept()
+			if s then
+				spawn(doio,s) --spwan a light process to do io
+			elseif err == "stop" then
+				return
 			end
-		      end)
-	end
+		end
+	end)
 	node_loop()
 	print("see you!")
 end
