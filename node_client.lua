@@ -31,7 +31,7 @@ function main(arg)
 	print(arg[3])
 	local count = tonumber(arg[3])
 	while count > 0 do
-		node_spwan(nil,connect_fun) --spwan a light process to do accept
+		spawn(nil,connect_fun) --spwan a light process to do accept
 		count = count - 1
     end
     node_loop()

@@ -148,12 +148,12 @@ function lp_start_fun(lp)
 	print("end lp_start_fun")
 end
 
-function node_spwan(ud,mainfun)
+function spawn(func,ud)
     print("node_spwan")
     local lprocess = light_process:new()
     lprocess.croutine = coroutine.create(lp_start_fun)
     lprocess.ud = ud
-	lprocess.start_func = mainfun
+    lprocess.start_func = func
     global_sc:Add2Active(lprocess)
 end
 
