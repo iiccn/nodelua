@@ -1,8 +1,8 @@
 CFLAGS = -g -Wall 
-LDFLAGS = -lpthread -lrt -ltcmalloc
+LDFLAGS = -lpthread -lrt
 SHARED = -fPIC --shared
 CC = gcc
-INCLUDE = -I../KendyNet/kendynet/core -I../KendyNet/kendynet -I.. -I/usr/local/include/luajit-2.0
+INCLUDE = -I../KendyNet/kendynet/core -I../KendyNet/kendynet -I.. -I../KendyNet/kendynet/deps/luajit-2.0/src
 DEFINE = -D_DEBUG -D_LINUX
 
 kendynet.a: \
@@ -46,7 +46,7 @@ nodelua:node/nodelua.c node/lsock.c kendynet.a nodelua.c
 	$(CC) $(CFLAGS) -c $(SHARED) node/nodelua.c node/lsock.c $(INCLUDE) $(DEFINE) 
 	$(CC) $(SHARED) -o nodelua.so nodelua.o lsock.o kendynet.a $(LDFLAGS) $(DEFINE)
 	rm -f *.o
-	$(CC) $(CFLAGS) -o nodelua nodelua.c kendynet.a /usr/local/lib/libluajit-5.1.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -lm
+	$(CC) $(CFLAGS) -o nodelua nodelua.c kendynet.a ../KendyNet/kendynet/deps/luajit-2.0/src/libluajit.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -lm
 	
 	
 	
