@@ -2,42 +2,42 @@ CFLAGS = -O2 -g -Wall
 LDFLAGS = -lpthread -lrt -ltcmalloc
 SHARED = -fPIC --shared
 CC = gcc
-INCLUDE = -I../KendyNet/kendynet/core -I../KendyNet/kendynet -I.. -I../KendyNet/kendynet/deps/luajit-2.0/src
+INCLUDE = -I../KendyNet/core -I../KendyNet -I.. -I../KendyNet/deps/luajit-2.0/src
 DEFINE = -D_DEBUG -D_LINUX -DMQ_HEART_BEAT
 
 kendynet.a: \
-		   ../KendyNet/kendynet/core/src/buffer.c \
-		   ../KendyNet/kendynet/core/src/connection.c \
-		   ../KendyNet/kendynet/core/src/poller.c \
-		   ../KendyNet/kendynet/core/src/epoll.c \
-		   ../KendyNet/kendynet/core/src/except.c \
-		   ../KendyNet/kendynet/core/src/kendynet.c \
-		   ../KendyNet/kendynet/core/src/msgque.c \
-		   ../KendyNet/kendynet/core/src/netservice.c \
-		   ../KendyNet/kendynet/core/src/rbtree.c \
-		   ../KendyNet/kendynet/core/src/rpacket.c \
-		   ../KendyNet/kendynet/core/src/socket.c \
-		   ../KendyNet/kendynet/core/src/sock_util.c \
-		   ../KendyNet/kendynet/core/src/spinlock.c \
-		   ../KendyNet/kendynet/core/src/systime.c \
-		   ../KendyNet/kendynet/core/src/thread.c \
-		   ../KendyNet/kendynet/core/src/timer.c \
-		   ../KendyNet/kendynet/core/src/uthread.c \
-		   ../KendyNet/kendynet/core/src/refbase.c \
-		   ../KendyNet/kendynet/core/src/log.c \
-		   ../KendyNet/kendynet/core/asynnet/src/asynnet.c \
-		   ../KendyNet/kendynet/core/asynnet/src/asynsock.c \
-		   ../KendyNet/kendynet/core/asynnet/src/msgdisp.c \
-		   ../KendyNet/kendynet/core/asynnet/src/asyncall.c \
-		   ../KendyNet/kendynet/core/src/atomic_st.c \
-		   ../KendyNet/kendynet/core/src/tls.c \
-		   ../KendyNet/kendynet/core/src/lua_util.c\
-		   ../KendyNet/kendynet/core/src/lua_util.c\
-		   ../KendyNet/kendynet/core/src/kn_string.c\
-		   ../KendyNet/kendynet/core/src/hash_map.c\
-		   ../KendyNet/kendynet/core/src/minheap.c\
-		   ../KendyNet/kendynet/core/src/lookup8.c\
-		   ../KendyNet/kendynet/core/src/wpacket.c
+		   ../KendyNet/core/src/buffer.c \
+		   ../KendyNet/core/src/connection.c \
+		   ../KendyNet/core/src/poller.c \
+		   ../KendyNet/core/src/epoll.c \
+		   ../KendyNet/core/src/except.c \
+		   ../KendyNet/core/src/kendynet.c \
+		   ../KendyNet/core/src/msgque.c \
+		   ../KendyNet/core/src/netservice.c \
+		   ../KendyNet/core/src/rbtree.c \
+		   ../KendyNet/core/src/rpacket.c \
+		   ../KendyNet/core/src/socket.c \
+		   ../KendyNet/core/src/sock_util.c \
+		   ../KendyNet/core/src/spinlock.c \
+		   ../KendyNet/core/src/systime.c \
+		   ../KendyNet/core/src/thread.c \
+		   ../KendyNet/core/src/timer.c \
+		   ../KendyNet/core/src/uthread.c \
+		   ../KendyNet/core/src/refbase.c \
+		   ../KendyNet/core/src/log.c \
+		   ../KendyNet/core/asynnet/src/asynnet.c \
+		   ../KendyNet/core/asynnet/src/asynsock.c \
+		   ../KendyNet/core/asynnet/src/msgdisp.c \
+		   ../KendyNet/core/asynnet/src/asyncall.c \
+		   ../KendyNet/core/src/atomic_st.c \
+		   ../KendyNet/core/src/tls.c \
+		   ../KendyNet/core/src/lua_util.c\
+		   ../KendyNet/core/src/lua_util.c\
+		   ../KendyNet/core/src/kn_string.c\
+		   ../KendyNet/core/src/hash_map.c\
+		   ../KendyNet/core/src/minheap.c\
+		   ../KendyNet/core/src/lookup8.c\
+		   ../KendyNet/core/src/wpacket.c
 		$(CC) $(CFLAGS) -c $^ $(INCLUDE) $(DEFINE)
 		ar -rc kendynet.a *.o
 		rm -f *.o
@@ -46,7 +46,7 @@ nodelua:node/nodelua.c node/lsock.c kendynet.a nodelua.c
 	$(CC) $(CFLAGS) -c $(SHARED) node/nodelua.c node/lsock.c $(INCLUDE) $(DEFINE) 
 	$(CC) $(SHARED) -o nodelua.so nodelua.o lsock.o kendynet.a $(LDFLAGS) $(DEFINE)
 	rm -f *.o
-	$(CC) $(CFLAGS) -o nodelua nodelua.c kendynet.a ../KendyNet/kendynet/deps/luajit-2.0/src/libluajit.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -lm
+	$(CC) $(CFLAGS) -o nodelua nodelua.c kendynet.a ../KendyNet/deps/luajit-2.0/src/libluajit.a $(INCLUDE) $(LDFLAGS)	$(DEFINE) -rdynamic -ldl -lm
 	
 	
 	

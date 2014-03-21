@@ -316,7 +316,7 @@ static inline void new_connection(lua_State *L,SOCK sock,void *ud)
    
     ls->sockobj = create_luaObj(L,-1);
     lua_pop(L,1);
-    g_nodelua->netpoller->bind(g_nodelua->netpoller,c,lua_process_packet,luasock_disconnect,
+    g_nodelua->netpoller->bind(g_nodelua->netpoller,c,65536,lua_process_packet,luasock_disconnect,
                        0,NULL,0,NULL);
     luaObject_t t = (luaObject_t)ud;
     PUSH_TABLE3(L,PUSH_LUAOBJECT(L,t),
